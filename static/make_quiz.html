@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz Maker</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/template.js"></script>
+
+</head>
+
+<body>
+    <div class="container">
+        <div id="login">
+            <h1>Make Quiz</h1>
+            <label for="images" class="btn">Quiz Name:</label>
+            <input id="name" placeholder="Quiz Name" />
+            <label for="images" class="btn">Question CSV:</label>
+            <input id="questions" accept=".csv" type="file" placeholder="CSV of questions" />
+            <label for="images" class="btn">Image Zip FIle:</label>
+            <input id="images" accept=".zip" type="file" placeholder="CSV of questions" />
+            <button onclick="createQuiz()">Make Quiz</button>
+        </div>
+    </div>
+
+    <script>
+        let file = null;
+
+        function post_data(p, b) {
+            return fetch(p, { body: JSON.stringify(b), method: "POST", headers: { "Content-type": "application/json; charset=UTF-8" } }).then((a) => a.json()).then((x) => x)
+        }
+
+        function readFileAsync(file, type = "text") {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+
+                switch (type) {
+                    case "text":
+                        reader.readAsText(file);
+                        break;
+                    case "arrayBuffer":
+                        reader.readAsArrayBuffer(file);
+                        break;
+                    case "dataURL":
+                        reader.readAsDataURL(file);
+                        break;
+                    case "binaryString":
+                        reader.readAsBinaryString(file);
+                        break;
+                    default:
+                        reject(new Error("Unsupported read type"));
+                }
+            });
+        }
+
+
+        async function createQuiz() {
+            let name = document.getElementById("name").value;
+            let quiz_id = (await post_data("/quiz", { title: name }))["quiz_id"]
+            const input = document.getElementById('questions');
+            file = input.files[0];
+            const text = await readFileAsync(file);
+            console.log(text)
+            let data = text.split("\n")
+            data.shift()
+            data.pop()
+            for (i = 0; i < data.length; i++) {
+                line = data[i]
+                let [round, question, question_type, options, correct_options] = line.split(",")
+                r = await post_data(`/quiz/${quiz_id}/question`, { question: question,round:round, question_type: question_type, options: options.split("|"), correct_options: correct_options.split("|") })
+                console.log(r)
+            }
+        }
+
+    </script>
+</body>
+
+</html>

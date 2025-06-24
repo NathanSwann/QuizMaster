@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz Participant</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/template.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div id="login" style="display: none;">
+            <h1>Join Quiz</h1>
+            <input id="name" placeholder="Your name" />
+            <input id="sessionId" placeholder="Session ID" type="number" />
+            <button onclick="joinSession()">Join</button>
+        </div>
+
+        <div id="quiz" style="display:none;">
+            <div id="questionContainer"></div>
+            <div class="fixed-bottom">
+                <button id="submitAnswerBtn" onclick="submitAnswer()">Submit</button>
+            </div>
+        </div>
+        <div id="status"></div>
+    </div>
+
+
+    <template id="round_question_mc">
+        <div class="question-card">
+            <h3 class="question-text">${question_text}</h3>
+            <form id="options_answer" class="options-form">
+                ${options}
+            </form>
+        </div>
+    </template>
+
+    <template id="round_question_text">
+        <div class="question-card">
+            <h3 class="question-text">${question_text}</h3>
+            <input id="text_answer" type="text" placeholder="Your Answer" />
+        </div>
+    </template>
+
+    <template id="round_question_number">
+        <div class="question-card">
+            <h3 class="question-text">${question_text}</h3>
+            <input id="numerical_answer" type="number" placeholder="Your Answer" />
+        </div>
+    </template>
+
+    <template id="round_question_order">
+        <div class="question-card">
+            <h3 class="question-text">${question_text}</h3>
+            <ul id="question_order_list" class="list-group">
+                ${options}
+            </ul>
+        </div>
+    </template>
+
+    <script>
+        let participantId = localStorage.getItem("teamauthToken");
+        let currentQuestionIndex = -1;
+        let currentQuestion = null;
+        if (!participantId) {
+            document.getElementById('login').style.display = 'block';
+        } else {
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('quiz').style.display = 'block';
+            pollQuestion(); // Start polling immediately
+        }
+
+        function renderMC(data) {
+            const tmpl = document.getElementById("round_question_mc").innerHTML;
+            const rendered = tmpl
+                .replace("${question_text}", data.question)
+                .replace("${options}", data.options.map((opt, i) => `<label class="option"><input class="mc_option" type="checkbox" name="answer" value="${opt}"/><span>${opt}</span></label>`).join(""));
+            return rendered
+        }
+
+        function renderTEXT(data) {
+            const tmpl = document.getElementById("round_question_text").innerHTML;
+            const rendered = tmpl
+                .replace("${question_text}", data.question);
+            return rendered;
+        }
+        function renderNUMBER(data) {
+            const tmpl = document.getElementById("round_question_number").innerHTML;
+            const rendered = tmpl
+                .replace("${question_text}", data.question);
+            return rendered;
+        }
+        function renderORDER(data) {
+            const tmpl = document.getElementById("round_question_order").innerHTML;
+            const rendered = tmpl
+                .replace("${question_text}", data.question)
+                .replace("${options}", data.options.map((opt, i) => `<li class="list-group-item">${opt}</li>`).join(""));
+            return rendered;
+        }
+
+
+        async function joinSession() {
+            const name = document.getElementById('name').value.trim();
+            const sessionId = document.getElementById('sessionId').value;
+            if (!name || !sessionId) {
+                alert("Enter name and session ID");
+                return;
+            }
+            const res = await fetch(`/live/${sessionId}/join`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (!res.ok) {
+                alert("Failed to join session");
+                return;
+            }
+            const data = await res.json();
+            participantId = data.participant_id;
+            localStorage.setItem("teamauthToken", participantId);
+            document.getElementById('status').textContent = `Joined as ${name}. Participant ID: ${participantId}`;
+            document.getElementById('quiz').style.display = 'block';
+            document.getElementById('login').style.display = 'none';
+            pollQuestion(); // Start polling immediately
+        }
+
+        async function pollQuestion() {
+            if (!participantId) return;
+            const session_id_response = await fetch(`/user/${participantId}`);
+            const session_id_json = await session_id_response.json();
+            const sessionId = session_id_json["session_id"];
+            if (!sessionId) return;
+
+            try {
+                const res = await fetch(`/live/${sessionId}/question`);
+                if (!res.ok) throw new Error("Failed to fetch question");
+
+                const data = await res.json();
+                if (data.message === "Quiz finished") {
+                    window.location.href = `/results?session=${sessionId}`;
+                    return;
+                }
+
+                if (currentQuestionIndex !== data.question_id) {
+                    console.log("RENDERING")
+                    currentQuestionIndex = data.question_id;
+                    currentQuestion = data;
+
+                    let rendered = null;
+                    if (data.question_type == "MC") {
+                        rendered = renderMC(data)
+                    }
+                    if (data.question_type == "TEXT") {
+                        rendered = renderTEXT(data)
+                    }
+                    if (data.question_type == "NUMBER") {
+                        rendered = renderNUMBER(data)
+                    }
+                    if (data.question_type == "ORDER") {
+                        rendered = renderORDER(data)
+                    }
+                    document.getElementById("questionContainer").innerHTML = rendered;
+
+                    document.getElementById('submitAnswerBtn').disabled = false;
+                    document.getElementById('status').textContent = "";
+                    if (data.question_type == "ORDER") {
+                        let question_order_list = document.getElementById("question_order_list")
+                        Sortable.create(question_order_list, {
+                            animation: 150,
+                            ghostClass: 'blue-background-class'
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status').textContent = "Error polling question.";
+            }
+        }
+
+        async function submitAnswer() {
+            let answer = "";
+            let question_mode = currentQuestion.question_type
+            if (question_mode == "TEXT") {
+                answer = document.getElementById("text_answer").value
+            }
+            if (question_mode == "NUMBER") {
+                answer = document.getElementById("numerical_answer").value
+            }
+            if (question_mode == "MC") {
+                let parent = document.getElementById("options_answer")
+                let options = parent.getElementsByClassName("mc_option")
+                // A|B|C
+                answer = Array.from(options).filter((x) => x.checked).map((x) => x.value).join("|")
+            }
+            if (question_mode == "ORDER") {
+                let parent = document.getElementById("question_order_list")
+                let options = parent.getElementsByClassName("list-group-item")
+                // A|B|C
+                answer = Array.from(options).map((x) => x.innerHTML).join("|")
+            }
+            console.log(answer)
+            const session_id_response = await fetch(`/user/${participantId}`);
+            const session_id_json = await session_id_response.json();
+            const sessionId = session_id_json["session_id"];
+            fetch(`/live/${sessionId}/answer`, {
+                method: "POST", body: JSON.stringify({ participant_id: parseInt(participantId), answer: answer }), headers: {
+                    "Content-type": "application/json; charset=UTF-8"
+                }
+            })
+            document.getElementById('submitAnswerBtn').disabled = true;
+        }
+
+        // Poll every 5 seconds
+        setInterval(pollQuestion, 500);
+    </script>
+</body>
+
+</html>

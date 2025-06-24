@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz Results</title>
+    <link rel="stylesheet" href="/static/style.css?a">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Quiz Results</h1>
+        <div id="sessionSection" style="display:block">
+            <div class="results">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Team Name</th>
+                            <th>Points</th>
+                            <th>First Finishes</th>
+                            <th>Answered</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results">
+                        <tr>
+                            <td>Alpha Squad</td>
+                            <td>45</td>
+                            <td>3</td>
+                            <td><span class="yes">Yes</span></td>
+                        </tr>
+                        <tr>
+                            <td>Bravo Team</td>
+                            <td>38</td>
+                            <td>2</td>
+                            <td><span class="no">No</span></td>
+                        </tr>
+                        <tr>
+                            <td>Charlie Crew</td>
+                            <td>50</td>
+                            <td>4</td>
+                            <td><span class="yes">Yes</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+            
+        </div>
+    </div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session');
+
+        function pollQuestion() {
+            fetch(`/live/${sessionId}/results`).then((r) => r.json().then((data) => {
+                document.getElementById("results").innerHTML = data["results"].map((result) => {
+                    return `<tr><td>${result["participant_name"]}</td><td>${Math.round(result["score"] * 10) / 10}</td><td>${result["first_points"]}</td><td><span class="${result["answered"]}">${result["answered"]}</span></td></tr>`
+                }).join("")
+            }));
+        }   
+        pollQuestion()
+        setInterval(pollQuestion, 5000);
+    </script>
+
+</body>
+
+</html>

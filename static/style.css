@@ -1,0 +1,203 @@
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    padding: 1rem;
+    background: #f9f9f9;
+}
+
+.container {
+    max-width: 600px;
+    margin: auto;
+}
+
+h1,
+h2 {
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+input,
+button {
+    font-size: 1.1rem;
+    padding: 0.75rem;
+    width: 100%;
+    margin: 0.5rem 0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+}
+
+button:disabled {
+    background-color: #aaa;
+}
+
+label {
+    display: block;
+    margin-top: 1rem;
+}
+
+.option {
+    padding: 1rem;
+    background: white;
+    margin: 0.5rem 0;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1.1rem;
+}
+
+.option input {
+    margin-right: 1rem;
+    transform: scale(1.5);
+}
+
+.fixed-bottom {
+    position: fixed;
+    bottom: 1rem;
+    left: 0;
+    right: 0;
+    max-width: 600px;
+    margin: auto;
+    padding: 0 1rem;
+}
+
+.question-card {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin: 1rem;
+}
+
+.round-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.question-text {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: #444;
+}
+
+.options-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border 0.2s ease;
+}
+
+.option:hover {
+    border-color: #007bff;
+    background: #f0f8ff;
+}
+
+.option span{
+    width: 98%;
+}
+
+.list-group-item {
+    background-color: #f0f8ff;
+    width: 100%;
+    border: 1px;
+    padding: 10px;
+    list-style: none !important;
+    margin-left: 0;
+}
+
+.list-group {
+    margin-left: -40px;
+}
+
+select {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: border 0.2s;
+    flex: 1;
+  }
+
+  select:focus {
+    outline: none;
+    border-color: #007BFF;
+  }
+
+  .QuizSelector {
+    display: flex;
+    align-items: center; /* Vertical alignment */
+    gap: 0.5rem; /* Space between label and select */
+  }
+
+  .QuizSelector label {
+    display: flex;
+    font-size: 1rem;
+    margin: 0;
+  }
+
+  select {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: white;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: border 0.2s;
+  }
+
+  select:focus {
+    outline: none;
+    border-color: #007BFF;
+  }
+
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    background-color: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  }
+
+  th, td {
+    padding: 0.75rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+  }
+
+  th {
+    background-color: #f1f1f1;
+    font-weight: bold;
+  }
+
+  tr:hover {
+    background-color: #f9f9f9;
+  }
+
+  .yes {
+    color: green;
+    font-weight: bold;
+  }
+
+  .no {
+    color: red;
+    font-weight: bold;
+  }

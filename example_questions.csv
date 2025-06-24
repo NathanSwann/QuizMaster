@@ -1,0 +1,5 @@
+Round,Question_Text,Question_Type,Options,Answer
+Round 1,In star wars who was lukes father?,TEXT,,Darth Vader|Anakin Skywalker|Anakin
+Round 1,Whats the captial of france?,MC,Paris|London|Naples|Tokyo,Paris
+Round 2,How many kilos of oranges did the UK import in 2023?,NUMBER,,211451000
+Round 3,Order these politicians by term length shortest first,ORDER,Lizz Truss|Tony Blair|Margaret Thatcher|Gorden Brown,Lizz Truss|Gorden Brown|Tony Blair|Margaret Thatcher

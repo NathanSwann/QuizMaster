@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz Runner</title>
+    <link rel="stylesheet" href="/static/style.css?a">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Quiz Runner</h1>
+        <div id="quiz_selector">
+            <div class="QuizSelector">
+                <label for="quizId"><b>Quiz:</b></label>
+                <select id="quizId" name="quizId"></select>
+            </div>
+            <button id="startBtn">Start Live Quiz</button>
+        </div>
+
+        <div id="sessionSection" style="display:none">
+            <p>Session ID: <span id="sessionId"></span></p>
+            <div>
+                <button id="nextBtn">Next Question</button>
+                <button id="roundBreakBtn">Round Break</button>
+            </div>
+            <div class="question-card" style="padding: 10px;">
+                <h3>Current Question</h3>
+                <p id="currentQuestion"></p>
+            </div>
+            <div class="question-card" style="padding: 10px;">
+                <h3>Up Next</h3>
+                <p id="nextQuestion"></p>
+            </div>
+            <div class="results">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Team Name</th>
+                            <th>Points</th>
+                            <th>First Finishes</th>
+                            <th>Answered</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results">
+                    </tbody>
+                </table>
+
+            </div>
+            
+        </div>
+    </div>
+    <script>
+        let sessionId = localStorage.getItem("runner_session_id");
+        let quiz_data = null;
+
+        fetch("/quiz").then((res) => res.json().then(
+            (data) => {
+                let selector = document.getElementById('quizId');
+                Object.entries(data["quizes"]).forEach((x, y) => {
+                    var opt = document.createElement('option');
+                    opt.value = parseInt(x[0])
+                    var title = x[1]["title"]
+                    opt.innerHTML = title[0].toUpperCase() + title.substring(1);
+                    selector.append(opt)
+                })
+            }
+        ))
+
+        if (sessionId) {
+            document.getElementById('sessionId').textContent = sessionId;
+            document.getElementById('sessionSection').style.display = 'block';
+            document.getElementById("quiz_selector").style.display = 'none';
+            fetch(`/live/${sessionId}/quiz`).then(r => r.json()).then(d => {
+                quiz_data = d
+            })
+            console.log(quiz_data)
+            pollQuestion()
+        }
+
+        document.getElementById('startBtn').onclick = async () => {
+            const quizId = document.getElementById('quizId').value;
+            if (!quizId) {
+                alert("Please enter a quiz ID");
+                return;
+            }
+            const res = await fetch(`/quiz/${quizId}/live/start`, { method: 'POST' });
+            if (!res.ok) {
+                alert("Failed to start quiz");
+                return;
+            }
+            const data = await res.json();
+            sessionId = data.session_id;
+            localStorage.setItem("runner_session_id", sessionId)
+            document.getElementById('sessionId').textContent = sessionId;
+            document.getElementById('sessionSection').style.display = 'block';
+            document.getElementById("quiz_selector").style.display = 'none';
+            quiz_data = await fetch(`/live/${sessionId}/quiz`).then(r => r.json())
+            console.log(quiz_data)
+            pollQuestion()
+        };
+
+        document.getElementById("roundBreakBtn").onclick = async () => {
+            const res = await fetch(`/live/${sessionId}/round_break`, { method: 'POST' });
+            if (!res.ok) {
+                alert("Failed to start quiz");
+                return;
+            }
+        }
+
+        document.getElementById('nextBtn').onclick = async () => {
+            if (!sessionId) {
+                alert("Start a session first");
+                return;
+            }
+            const res = await fetch(`/live/${sessionId}/next`, { method: 'POST' });
+            if (!res.ok) {
+                alert("Failed to advance question");
+                return;
+            }
+            const data = await res.json();
+            if (data.message === "Quiz ended") {
+                alert("Quiz ended!");
+                document.getElementById('currentIndex').textContent = "Finished";
+                document.getElementById('nextBtn').disabled = true;
+            }
+            console.log(data)
+            pollQuestion()
+        };
+
+        // Toggles buttons
+        function set_round_break(is_round_break,should_round_break) {
+            if (should_round_break & !is_round_break) { // we should take a break but we havent
+                document.getElementById('nextBtn').style.display = 'none';
+                document.getElementById("roundBreakBtn").style.display = 'block';
+            } else {
+                document.getElementById('nextBtn').style.display = 'block';
+                document.getElementById("roundBreakBtn").style.display = 'none';
+            }
+        }
+
+        function pollQuestion() {
+
+            const res = fetch(`/live/${sessionId}/question`).then((r) => r.json().then((data) => {
+                if ("message" in data) {
+                    window.location.href = `/review_answers`;
+                }
+                document.getElementById("currentQuestion").innerHTML = data["question"] + "<br>"
+                document.getElementById("currentQuestion").innerHTML += data["options"].join(", ")
+                console.log(data["on_round_break"],quiz_data["questions"][data["question_index"] + 1]["round"],data["round"])
+                set_round_break(data["on_round_break"],quiz_data["questions"][data["question_index"] + 1]["round"] != data["round"])
+                document.getElementById("nextQuestion").innerHTML = quiz_data["questions"][data["question_index"] + 1]["question"] + "<br>"
+                document.getElementById("nextQuestion").innerHTML += quiz_data["questions"][data["question_index"] + 1]["options"].join(", ")
+            }));
+
+            fetch(`/live/${sessionId}/results`).then((r) => r.json().then((data) => {
+                document.getElementById("results").innerHTML = data["results"].map((result) => {
+                    return `<tr><td>${result["participant_name"]}</td><td>${result["score"]}</td><td>${result["first_points"]}</td><td><span class="${result["answered"]}">${result["answered"]}</span></td></tr>`
+                }).join("")
+            }));
+        }   
+        setInterval(pollQuestion, 500);
+    </script>
+
+</body>
+
+</html>
