@@ -124,6 +124,8 @@ def score_session(session_id, db):
     )
     return df.select(
         pl.col("question_id"),
+        pl.col("question_type"),
+        pl.col("answer_id"),
         pl.col("participant_id"),
         pl.col("participant_name"),
         pl.col("map").alias("points"),
@@ -134,7 +136,7 @@ def score_session(session_id, db):
 
 def get_player_scores(session_id, db):
     df = score_session(session_id, db)
-    if df == None:
+    if df is None:
         return []
     scores = df.group_by("participant_id").agg(
         pl.col("score").sum(),

@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 import scoring
+import polars as pl
 
 from models import Base, Quiz, Question, Answer, LiveSession, Participant
 
@@ -290,6 +291,46 @@ def submit_answer(session_id: int, answer: AnswerInput, db: Session = Depends(ge
     return {"message": "Answer recorded"}
 
 
+class AnswerRequest(BaseModel):
+    participant_id: int
+
+
+@app.get("/live/{session_id}/my_answers/{participant_id}")
+def my_answers(session_id: int, participant_id: int, db: Session = Depends(get_db)):
+    scores = scoring.score_session(session_id, db)
+    if scores is None:
+        return {}
+    scores.filter((pl.col("participant_id") == participant_id) & (pl.col("score") < 1))
+    answer_info = pl.DataFrame(
+        db.query(
+            Answer.id.label("answer_id"), Answer.disputed, Answer.checked, Answer.answer
+        )
+        .filter(Answer.participant_id == participant_id)
+        .all()
+    )
+    question_info = pl.DataFrame(
+        db.query(
+            Question.id.label("question_id"), Question.question.label("question_text")
+        ).all()
+    )
+    return (
+        scores.join(answer_info, how="left", on="answer_id")
+        .join(question_info, how="left", on="question_id")
+        .to_dicts()
+    )
+
+
+@app.post("/live/dispute/{answer_id}")
+def dispute(answer_id: int, db: Session = Depends(get_db)):
+
+    answer = db.query(Answer).filter(Answer.id == answer_id).first()
+    if not answer:
+        raise HTTPException(status_code=404, detail="Live session not active")
+    answer.disputed = True
+    db.commit()
+    return {"msg": "disputed"}
+
+
 @app.get("/live/{session_id}/results")
 def get_results(session_id: int, db: Session = Depends(get_db)):
     res = scoring.get_player_scores(session_id, db)
@@ -323,3 +364,8 @@ def make_quiz_show():
 @app.get("/review_answers", response_class=HTMLResponse)
 def review_answers():
     return (static_path / "review_answers.html").read_text()
+
+
+@app.get("/manage_tokens", response_class=HTMLResponse)
+def manage_tokens():
+    return (static_path / "delete_tokens.html").read_text()

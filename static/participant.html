@@ -26,6 +26,11 @@
                 <button id="submitAnswerBtn" onclick="submitAnswer()">Submit</button>
             </div>
         </div>
+        <div id="answers" style="display: none;">
+            <h1>Current Answers</h1>
+            <a id="result_loc" href="/results">See Current Results</a>
+            <div id="answer_list"></div>
+        </div>
         <div id="status"></div>
     </div>
 
@@ -62,10 +67,21 @@
         </div>
     </template>
 
+    <template id="answer_template">
+        <div class="question-card" style="background-color: ${background};">
+            <h3 class="question-text">${question_text}</h3>
+            <p>
+                ${answer}
+            </p>
+            ${dispute}
+        </div>
+    </template>
+
     <script>
         let participantId = localStorage.getItem("teamauthToken");
         let currentQuestionIndex = -1;
         let currentQuestion = null;
+        let sessionId = null;
         if (!participantId) {
             document.getElementById('login').style.display = 'block';
         } else {
@@ -102,6 +118,14 @@
             return rendered;
         }
 
+        async function dispute(id) {
+            await fetch(`/live/dispute/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            current_answers = []
+        }
+
 
         async function joinSession() {
             const name = document.getElementById('name').value.trim();
@@ -128,11 +152,37 @@
             pollQuestion(); // Start polling immediately
         }
 
+        let current_answers = []
+        async function toggle_on_break(on_break) {
+            if (!on_break) {
+                document.getElementById('quiz').style.display = 'block';
+                document.getElementById('answers').style.display = 'none';
+                current_answers = []
+                return
+            }
+            document.getElementById('quiz').style.display = 'none';
+            document.getElementById('answers').style.display = 'block';
+
+            if (current_answers.length == 0) {
+                a = await fetch(`/live/${sessionId}/my_answers/${participantId}`)
+                json = await a.json()
+                current_answers = json
+                document.getElementById("answer_list").innerHTML = ""
+                current_answers.reverse().forEach(element => {
+                    iscorrect = element.score >= 1
+                    let dispute = `<button onclick="dispute(${element.answer_id})">Dispute</button>`
+                    document.getElementById("answer_list").innerHTML +=  render_template("answer_template",{background:iscorrect?"#dcf7bc":"#f7bcbc",question_text:element.question_text,answer:element.answer,dispute:((!element.disputed)&(!iscorrect))?dispute:""})
+                });
+            }
+            
+        }
+
         async function pollQuestion() {
             if (!participantId) return;
             const session_id_response = await fetch(`/user/${participantId}`);
             const session_id_json = await session_id_response.json();
-            const sessionId = session_id_json["session_id"];
+            sessionId = session_id_json["session_id"];
+            document.getElementById("result_loc").href = "/results?session="+sessionId
             if (!sessionId) return;
 
             try {
@@ -175,6 +225,7 @@
                         });
                     }
                 }
+                await toggle_on_break(data.on_round_break)
             } catch (err) {
                 console.error(err);
                 document.getElementById('status').textContent = "Error polling question.";

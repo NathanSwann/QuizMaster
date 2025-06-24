@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tokens Manager</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/template.js"></script>
+
+</head>
+
+<body>
+    <div class="container">
+        <h1>Tokens Manager</h1>
+        <button id="deleteToken">Delete All Tokens</button>
+        <button id="setToken">Set Tokens</button>
+    </div>
+
+    <script>
+        
+        document.getElementById("setToken").onclick = async () => {
+            name = prompt("NAME")
+            value = prompt("value")
+            localStorage.setItem(name,value)
+        }
+        document.getElementById("deleteToken").onclick = async () => {
+            if ("YES" == prompt("YES")) {
+                localStorage.clear()
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -77,6 +77,7 @@
             })
             console.log(quiz_data)
             pollQuestion()
+            setInterval(pollQuestion, 500);
         }
 
         document.getElementById('startBtn').onclick = async () => {
@@ -99,6 +100,7 @@
             quiz_data = await fetch(`/live/${sessionId}/quiz`).then(r => r.json())
             console.log(quiz_data)
             pollQuestion()
+            setInterval(pollQuestion, 500);
         };
 
         document.getElementById("roundBreakBtn").onclick = async () => {
@@ -125,7 +127,6 @@
                 document.getElementById('currentIndex').textContent = "Finished";
                 document.getElementById('nextBtn').disabled = true;
             }
-            console.log(data)
             pollQuestion()
         };
 
@@ -148,7 +149,6 @@
                 }
                 document.getElementById("currentQuestion").innerHTML = data["question"] + "<br>"
                 document.getElementById("currentQuestion").innerHTML += data["options"].join(", ")
-                console.log(data["on_round_break"],quiz_data["questions"][data["question_index"] + 1]["round"],data["round"])
                 set_round_break(data["on_round_break"],quiz_data["questions"][data["question_index"] + 1]["round"] != data["round"])
                 document.getElementById("nextQuestion").innerHTML = quiz_data["questions"][data["question_index"] + 1]["question"] + "<br>"
                 document.getElementById("nextQuestion").innerHTML += quiz_data["questions"][data["question_index"] + 1]["options"].join(", ")
@@ -160,7 +160,7 @@
                 }).join("")
             }));
         }   
-        setInterval(pollQuestion, 500);
+        
     </script>
 
 </body>
